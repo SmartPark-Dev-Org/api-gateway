@@ -1,88 +1,11 @@
 # ============================================================
-# SmartPark :: API Gateway
-# Port  : 8080
-# Role  : Single entry point; reactive routing via lb:// URIs
+# SmartPark :: API Gateway — Bootstrap
+# All configuration is served by config-server.
 # ============================================================
-
-server:
-  port: 8080
 
 spring:
   application:
     name: api-gateway
 
-  # Optionally bootstrap config from config-server
   config:
     import: "optional:configserver:http://localhost:8888"
-
-  cloud:
-    gateway:
-      # ── Discovery Locator ─────────────────────────────────
-      # Auto-creates routes for every registered Eureka service.
-      # Route pattern: /SERVICE-NAME/** → lb://SERVICE-NAME/**
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true  # /parking-service/** instead of /PARKING-SERVICE/**
-
-      # ── Explicit Routes ───────────────────────────────────
-      # Add business-service routes here as microservices are built.
-      # lb:// URIs are resolved via Eureka + Spring Cloud LoadBalancer.
-      routes:
-        # --- Eureka Dashboard passthrough (dev convenience) ----
-        - id: eureka-dashboard
-          uri: http://localhost:8761
-          predicates:
-            - Path=/eureka/web
-          filters:
-            - SetPath=/
-
-        # --- Config Server passthrough -------------------------
-        - id: config-server
-          uri: lb://config-server
-          predicates:
-            - Path=/config/**
-          filters:
-            - StripPrefix=1
-
-        # --- Example: Parking Service (add when ready) ---------
-        # - id: parking-service
-        #   uri: lb://parking-service
-        #   predicates:
-        #     - Path=/api/v1/parking/**
-        #   filters:
-        #     - StripPrefix=2
-
-# ---- Eureka Client ------------------------------------------
-eureka:
-  instance:
-    prefer-ip-address: true
-    # Unique instance-id prevents collision if multiple instances run locally
-    instance-id: ${spring.application.name}:${server.port}
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-    fetch-registry: true
-    register-with-eureka: true
-    # Poll Eureka every 5 s in dev (default 30 s)
-    registry-fetch-interval-seconds: 5
-
-# ---- Actuator -----------------------------------------------
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health, info, env, gateway, routes
-  endpoint:
-    health:
-      show-details: always
-    gateway:
-      # Required from Spring Boot 3.4+ for /actuator/gateway/* endpoints
-      access: unrestricted
-
-# ---- Logging -------------------------------------------------
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
-    reactor.netty: INFO
-    root: INFO
